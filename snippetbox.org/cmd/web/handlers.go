@@ -91,6 +91,39 @@ func (app *App) CreateSnippet(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
 
+func (app *App) DeleteSnippet(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.ClientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form := &forms.DeleteSnippet{
+		Id: r.PostForm.Get("id"),
+	}
+
+	if !form.Valid() {
+		app.RenderHTML(w, r, "delete.page.html", &HTMLData{Form: form})
+		return
+	}
+
+	session := app.Sessions.Load(r)
+
+	err = session.PutString(w, "flash", "Your snippet was deleted successfully!")
+	if err != nil {
+		app.ServerError(w, err)
+		return
+	}
+
+	err = app.Database.DeleteSnippet(form.Id)
+	if err != nil {
+		app.ServerError(w, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/"), http.StatusSeeOther)
+}
+
 func (app *App) SignupUser(w http.ResponseWriter, r *http.Request) {
 	app.RenderHTML(w, r, "signup.page.html", &HTMLData{
 		Form: &forms.SignupUser{},
@@ -134,7 +167,7 @@ func (app *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// And redirect the user to the login page.
-	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+	http.Redirect(w, r, "/	", http.StatusSeeOther)
 }
 
 func (app *App) LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -159,8 +192,7 @@ func (app *App) VerifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form := &forms.LoginUser{
-		Email:
-		r.PostForm.Get("email"),
+		Email:    r.PostForm.Get("email"),
 		Password: r.PostForm.Get("password"),
 	}
 
@@ -171,7 +203,7 @@ func (app *App) VerifyUser(w http.ResponseWriter, r *http.Request) {
 
 	// Check whether the credentials are valid. If they're not, add a generic error
 	// message to the form failures map, and re-display the login page.
-	currentUserID, err := app.Database.VerifyUser(form.Email, form.Password)
+	currentUserID, err, admin := app.Database.VerifyUser(form.Email, form.Password)
 	if err == models.ErrInvalidCredentials {
 		form.Failures["Generic"] = "Email or Password is incorrect"
 		app.RenderHTML(w, r, "login.page.html", &HTMLData{Form: form})
@@ -181,17 +213,42 @@ func (app *App) VerifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add the ID of the current user to the session, so that they are now 'logged
+	if admin == false {
+		// Add the ID of the current user to the session, so that they are now 'logged
+		// in'.
+		session := app.Sessions.Load(r)
+		err = session.PutInt(w, "currentUserID", currentUserID)
+		if err != nil {
+			app.ServerError(w, err)
+			return
+		}
+
+		// Redirect the user to the Add Snippet page.
+		http.Redirect(w, r, "/snippet/new", http.StatusSeeOther)
+	}
+
+	// Add the ID of the current admin user to the session, so that they are now 'logged
 	// in'.
-	session := app.Sessions.Load(r)
-	err = session.PutInt(w, "currentUserID", currentUserID)
+	session := app.Admin.Load(r)
+	err = session.PutInt(w, "currentAdminID", currentUserID)
 	if err != nil {
 		app.ServerError(w, err)
 		return
 	}
 
+	if err == nil {
+		// Add the ID of the current user to the session, so that they are now 'logged
+		// in'.
+		session := app.Sessions.Load(r)
+		err = session.PutInt(w, "currentUserID", currentUserID)
+		if err != nil {
+			app.ServerError(w, err)
+			return
+		}
+	}
+
 	// Redirect the user to the Add Snippet page.
-	http.Redirect(w, r, "/snippet/new", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (app *App) LogoutUser(w http.ResponseWriter, r *http.Request) {
@@ -205,4 +262,47 @@ func (app *App) LogoutUser(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect the user to the homepage.
 	http.Redirect(w, r, "/", 303)
+}
+
+func (app *App) SignupAdmin(w http.ResponseWriter, r *http.Request) {
+	app.RenderHTML(w, r, "signup.admin.page.html", &HTMLData{
+		Form: &forms.SignupAdmin{},
+	})
+}
+
+func (app *App) CreateAdmin(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		app.ClientError(w, http.StatusBadRequest)
+		return
+	}
+	form := &forms.SignupAdmin{
+		Name:     r.PostForm.Get("name"),
+		Email:    r.PostForm.Get("email"),
+		Password: r.PostForm.Get("password"),
+	}
+	if !form.Valid() {
+		app.RenderHTML(w, r, "signup.admin.page.html", &HTMLData{Form: form})
+		return
+	}
+
+	err = app.Database.InsertAdmin(form.Name, form.Email, form.Password)
+	if err == models.ErrDuplicateEmail {
+		form.Failures["Email"] = "Address is already in use"
+		app.RenderHTML(w, r, "signup.admin.page.html", &HTMLData{Form: form})
+		return
+	} else if err != nil {
+		app.ServerError(w, err)
+		return
+	}
+
+	msg := "Your Admin signup was successful. Please log in using your credentials."
+	session := app.Sessions.Load(r)
+	err = session.PutString(w, "flash", msg)
+	if err != nil {
+		app.ServerError(w, err)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -91,8 +91,8 @@ func (db *Database) InsertUser(name, email, password string) error {
 		return err
 	}
 
-	stmt := `INSERT INTO users (name, email, password, created)
-VALUES(?, ?, ?, UTC_TIMESTAMP())`
+	stmt := `INSERT INTO users (name, email, password, admin, created)
+VALUES(?, ?, ?, 0, UTC_TIMESTAMP())`
 
 	_, err = db.Exec(stmt, name, email, string(hashedPassword))
 	if err != nil {
@@ -104,27 +104,77 @@ VALUES(?, ?, ?, UTC_TIMESTAMP())`
 	return err
 }
 
-func (db *Database) VerifyUser(email, password string) (int, error) {
+func (db *Database) VerifyUser(email, password string) (int, error, bool) {
 	// Retrieve the id and hashed password associated with the given email. If no
 	// matching email exists, we return the ErrInvalidCredentials error.
 	var id int
 	var hashedPassword []byte
 	row := db.QueryRow("SELECT id, password FROM users WHERE email = ?", email)
-	err := row.Scan(&id, &hashedPassword)
+	rowAdmin := db.QueryRow("SELECT id, password FROM users WHERE email = ? and admin = '1'", email)
+
+	err := rowAdmin.Scan(&id, &hashedPassword)
 	if err == sql.ErrNoRows {
-		return 0, ErrInvalidCredentials
+		err := row.Scan(&id, &hashedPassword)
+		if err == sql.ErrNoRows {
+			return 0, ErrInvalidCredentials, false
+		} else if err != nil {
+			return 0, err, false
+		}
+		// Check whether the hashed password and plain-text password provided match.
+		// If they don't, we return the ErrInvalidCredentials error.
+		err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			return 0, ErrInvalidCredentials, false
+		} else if err != nil {
+			return 0, err, false
+		}
+
+		// Otherwise, the password is correct. Return the user ID.
+		return id, nil, false
+
 	} else if err != nil {
-		return 0, err
+		return 0, err, false
 	}
+
 	// Check whether the hashed password and plain-text password provided match.
 	// If they don't, we return the ErrInvalidCredentials error.
 	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
 	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return 0, ErrInvalidCredentials
+		return 0, ErrInvalidCredentials, false
 	} else if err != nil {
-		return 0, err
+		return 0, err, false
 	}
 
 	// Otherwise, the password is correct. Return the user ID.
-	return id, nil
+	return id, nil, true
+}
+
+func (db *Database) InsertAdmin(name, email, password string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return err
+	}
+
+	stmt := `INSERT INTO users (name, email, password, admin, created)
+VALUES(?, ?, ?, '1', UTC_TIMESTAMP())`
+
+	_, err = db.Exec(stmt, name, email, string(hashedPassword))
+	if err != nil {
+		if err.(*mysql.MySQLError).Number == 1062 {
+			return ErrDuplicateEmail
+		}
+	}
+
+	return err
+}
+
+func (db *Database) DeleteSnippet(id string) (error) {
+	stmt := `DELETE FROM snippets WHERE id = ?`
+
+	_, err := db.Exec(stmt, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

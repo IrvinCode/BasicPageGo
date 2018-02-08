@@ -44,6 +44,7 @@ type SignupUser struct {
 	Password string
 	Failures map[string]string
 }
+
 func (f *SignupUser) Valid() bool {
 	f.Failures = make(map[string]string)
 
@@ -81,5 +82,42 @@ func (f *LoginUser) Valid() bool {
 		f.Failures["Password"] = "Password is required"
 	}
 
+	return len(f.Failures) == 0
+}
+
+type SignupAdmin struct {
+	Name string
+	Email string
+	Password string
+	Failures map[string]string
+}
+
+
+func (f *SignupAdmin) Valid() bool {
+	f.Failures = make(map[string]string)
+
+	if strings.TrimSpace(f.Name) == "" {
+		f.Failures["Name"] = "Name is required"
+	}
+
+	if strings.TrimSpace(f.Email) == "" {
+		f.Failures["Email"] = "Email is required"
+	} else if len(f.Email) > 254 || !rxEmail.MatchString(f.Email) {
+		f.Failures["Email"] = "Email is not a valid address"
+	}
+
+	if utf8.RuneCountInString(f.Password) < 8 {
+		f.Failures["Password"] = "Password cannot be shorter than 8 characters"
+	}
+
+	return len(f.Failures) == 0
+}
+
+type DeleteSnippet struct {
+	Id string
+	Failures map[string]string
+}
+
+func (f *DeleteSnippet) Valid() bool {
 	return len(f.Failures) == 0
 }

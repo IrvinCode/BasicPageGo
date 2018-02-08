@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 )
+
 func (app *App) RunServer() {
 	tlsConfig := &tls.Config{
 		PreferServerCipherSuites: true,

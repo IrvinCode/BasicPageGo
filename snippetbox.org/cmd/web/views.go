@@ -20,6 +20,7 @@ type HTMLData struct {
 	Flash string
 	Form interface{}
 	LoggedIn bool
+	AdminLoggedIn bool
 	Path string
 	Snippet *models.Snippet
 	Snippets []*models.Snippet
@@ -37,6 +38,12 @@ func (app *App) RenderHTML(w http.ResponseWriter, r *http.Request, page string, 
 
 	var err error
 	data.LoggedIn, err = app.LoggedIn(r)
+	if err != nil {
+		app.ServerError(w, err)
+		return
+	}
+
+	data.AdminLoggedIn, err = app.AdminLoggedIn(r)
 	if err != nil {
 		app.ServerError(w, err)
 		return

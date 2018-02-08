@@ -6,12 +6,12 @@ import (
 	"github.com/alexedwards/scs"
 )
 
-// Add a new StaticDir field to our application dependencies.
 type App struct {
-	Addr     	 string
+	Addr      string
 	Database *models.Database
 	HTMLDir   string
 	Sessions *scs.Manager
+	Admin    *scs.Manager
 	StaticDir string
 	TLSCert   string
 	TLSKey    string
