@@ -1,4 +1,4 @@
-{{define "page-title"}}Signup{{end}}
+{{define "page-title"}}Signup Admin{{end}}
 {{define "page-body"}}
     <form action="/admin/signup" method="POST" novalidate>
         <!-- Add a hidden input containing the CSRF token -->
@@ -16,7 +16,7 @@
                 {{with .Failures.Email}}
                     <label class="error">{{.}}</label>
                 {{end}}
-                <input type="email" name="email" value="{{.Email}}">
+                <input autofocus type="email" name="email" value="{{.Email}}">
             </div>
             <div>
                 <label>Password:</label>

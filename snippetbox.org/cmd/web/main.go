@@ -17,7 +17,7 @@ func main() {
 	dsn := flag.String("dsn", "sb:pass@/snippetbox?parseTime=true", "MySQL DSN")
 	htmlDir := flag.String("html-dir", "./ui/html", "Path to HTML templates")
 	secret := flag.String("secret", "sb04y4ER5irMeOppyf5qdJG9kQSjWw2F", "Secret key")
-	top := flag.String("top", "sb04y4ER5irMeOppyf5qdJG9kQSjWw2F", "Secret key top")
+	top := flag.String("top", "sb04y4ER5irMeOppyf5qdJG9kQSjWw8G", "Secret key top")
 	staticDir := flag.String("static-dir", "./ui/static", "Path to static assets")
 	tlsCert := flag.String("tls-cert", "./tls/cert.pem", "Path to TLS certificate")
 	tlsKey := flag.String("tls-key", "./tls/key.pem", "Path to TLS key")

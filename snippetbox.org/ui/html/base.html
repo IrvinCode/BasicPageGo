@@ -20,6 +20,14 @@
                 New snippet
             </a>
             <form action="/user/logout" method="POST">
+                {{if .AdminLoggedIn}}
+                    <a href="/admin/signup" {{if eq .Path "/admin/signup"}}class="live"{{end}}>
+                        Signup Admin
+                    </a>
+                    <a href="/snippet/delete" {{if eq .Path "/snippet/delete"}}class="live"{{end}}>
+                        Delete snippets
+                    </a>
+                {{end}}
                 <!-- Add a hidden input containing the CSRF token -->
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                 <button>Logout</button>

@@ -8,6 +8,15 @@
     <div class="snippet">
         <div class="metadata">
             <strong>{{.Title}}</strong>
+        {{/*{{if .AdminLoggedIn}}*/}}
+            {{/*{{with .Form}}*/}}
+                {{/*<form action="/snippet/delete" method="POST">*/}}
+                    {{/*<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">*/}}
+                    {{/*<input type="hidden" name="id" value="{{.ID}}">*/}}
+                    {{/*<input type="submit" value="Delete snippet">*/}}
+                {{/*</form>*/}}
+            {{/*{{end}}*/}}
+        {{/*{{end}}*/}}
             <span>#{{.ID}}</span>
         </div>
         <pre><code>{{.Content}}</code></pre>

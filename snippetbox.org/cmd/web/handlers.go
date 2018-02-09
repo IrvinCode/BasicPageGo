@@ -14,8 +14,8 @@ func (app *App) Home(w http.ResponseWriter, r *http.Request) {
 		app.ServerError(w, err)
 		return
 	}
-
 	app.RenderHTML(w, r, "home.page.html", &HTMLData{
+
 		Snippets: snippets,
 	})
 }
@@ -56,6 +56,7 @@ func (app *App) NewSnippet(w http.ResponseWriter, r *http.Request) {
 		Form: &forms.NewSnippet{},
 	})
 }
+
 func (app *App) CreateSnippet(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -91,6 +92,12 @@ func (app *App) CreateSnippet(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
 
+func (app *App) EraseSnippet(w http.ResponseWriter, r *http.Request) {
+	app.RenderHTML(w, r, "delete.page.html", &HTMLData{
+		Form: &forms.DeleteSnippet{},
+	})
+}
+
 func (app *App) DeleteSnippet(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -104,14 +111,6 @@ func (app *App) DeleteSnippet(w http.ResponseWriter, r *http.Request) {
 
 	if !form.Valid() {
 		app.RenderHTML(w, r, "delete.page.html", &HTMLData{Form: form})
-		return
-	}
-
-	session := app.Sessions.Load(r)
-
-	err = session.PutString(w, "flash", "Your snippet was deleted successfully!")
-	if err != nil {
-		app.ServerError(w, err)
 		return
 	}
 
@@ -254,10 +253,19 @@ func (app *App) VerifyUser(w http.ResponseWriter, r *http.Request) {
 func (app *App) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	// Remove the currentUserID from the session data.
 	session := app.Sessions.Load(r)
-	err := session.Remove(w, "currentUserID")
+
+	err := session.Remove(w, "currentAdminID")
 	if err != nil {
 		app.ServerError(w, err)
 		return
+	}
+
+	if err == nil {
+		err := session.Remove(w, "currentUserID")
+		if err != nil {
+			app.ServerError(w, err)
+			return
+		}
 	}
 
 	// Redirect the user to the homepage.

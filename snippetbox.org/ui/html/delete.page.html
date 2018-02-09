@@ -1,0 +1,18 @@
+{{define "page-title"}}Delete snippets{{end}}
+{{define "page-body"}}
+<form action="/snippet/delete" method="POST" novalidate>
+    <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+    {{with .Form}}
+        <div>
+            <label>Id:</label>
+        {{with .Failures.Id}}
+            <label class="error">{{.}}</label>
+        {{end}}
+            <input type="text" name="id" value="{{.Id}}">
+        </div>
+        <div>
+            <input type="submit" value="deleted">
+        </div>
+    {{end}}
+</form>
+{{end}}
